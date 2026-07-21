@@ -19,6 +19,12 @@ type StoryScene = {
   localProgress: number;
 };
 
+type FrameRender = {
+  primaryFrame: number;
+  secondaryFrame?: number;
+  blend: number;
+};
+
 const defaultSolutions: Solution[] = [
   {
     id: "opportunity-intelligence",
@@ -52,10 +58,14 @@ const defaultSolutions: Solution[] = [
 
 const frameTemplates = {
   intro: [0, 34],
-  leftLeaf: [34, 75],
-  rightLeaf: [77, 110],
+  leftLeaf: [34, 76],
+  rightLeaf: [77, 112],
   bloom: [112, 150],
 } as const;
+
+const CHAPTER_SCROLL_VH = 125;
+const TEMPLATE_BLEND_WINDOW = 0.16;
+const TEMPLATE_HOLD_WINDOW = 0.08;
 
 function clamp(value: number, min = 0, max = 1) {
   return Math.min(max, Math.max(min, value));
@@ -65,13 +75,58 @@ function interpolateFrame(range: readonly [number, number], progress: number) {
   return range[0] + (range[1] - range[0]) * clamp(progress);
 }
 
-function frameForScene(chapter: number, localProgress: number, solutionCount: number) {
-  if (chapter === 0) return interpolateFrame(frameTemplates.intro, localProgress);
-  if (chapter <= solutionCount) {
-    const template = (chapter - 1) % 2 === 0 ? frameTemplates.leftLeaf : frameTemplates.rightLeaf;
-    return interpolateFrame(template, localProgress);
+function smoothstep(value: number) {
+  const progress = clamp(value);
+  return progress * progress * (3 - 2 * progress);
+}
+
+function templateForSolution(index: number) {
+  return index % 2 === 0 ? frameTemplates.leftLeaf : frameTemplates.rightLeaf;
+}
+
+function frameRenderForScene(chapter: number, localProgress: number, solutionCount: number): FrameRender {
+  if (chapter === 0) {
+    return {
+      primaryFrame: interpolateFrame(frameTemplates.intro, localProgress),
+      blend: 0,
+    };
   }
-  return interpolateFrame(frameTemplates.bloom, localProgress);
+
+  const isFinale = chapter > solutionCount;
+  const currentTemplate = isFinale
+    ? frameTemplates.bloom
+    : templateForSolution(chapter - 1);
+  const previousTemplate = chapter === 1
+    ? frameTemplates.intro
+    : templateForSolution(Math.min(chapter - 2, solutionCount - 1));
+
+  if (localProgress < TEMPLATE_BLEND_WINDOW) {
+    return {
+      primaryFrame: previousTemplate[1],
+      secondaryFrame: currentTemplate[0],
+      blend: smoothstep(localProgress / TEMPLATE_BLEND_WINDOW),
+    };
+  }
+
+  const animationEnd = 1 - TEMPLATE_HOLD_WINDOW;
+  const templateProgress = clamp(
+    (localProgress - TEMPLATE_BLEND_WINDOW) /
+      (animationEnd - TEMPLATE_BLEND_WINDOW),
+  );
+
+  return {
+    primaryFrame: interpolateFrame(currentTemplate, templateProgress),
+    blend: 0,
+  };
+}
+
+function frameRenderForTimeline(timeline: number, totalChapters: number, solutionCount: number) {
+  const boundedTimeline = clamp(timeline, 0, totalChapters);
+  const chapter = Math.min(totalChapters - 1, Math.floor(boundedTimeline));
+  const localProgress = boundedTimeline >= totalChapters
+    ? 1
+    : boundedTimeline - chapter;
+  return frameRenderForScene(chapter, localProgress, solutionCount);
 }
 
 function framePath(index: number) {
@@ -344,8 +399,10 @@ export default function Home() {
   const storyRef = useRef<HTMLElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const framesRef = useRef<Array<HTMLImageElement | undefined>>([]);
-  const targetFrameRef = useRef(0);
-  const currentFrameRef = useRef(0);
+  const targetTimelineRef = useRef(0);
+  const currentTimelineRef = useRef(0);
+  const totalChaptersRef = useRef(defaultSolutions.length + 2);
+  const solutionCountRef = useRef(defaultSolutions.length);
   const animationRef = useRef<number | null>(null);
   const startAnimationRef = useRef<() => void>(() => undefined);
   const pendingChapterRef = useRef<number | null>(null);
@@ -358,6 +415,9 @@ export default function Home() {
   const solutions = [...defaultSolutions, ...customSolutions];
   const solutionCount = solutions.length;
   const totalChapters = solutionCount + 2;
+
+  totalChaptersRef.current = totalChapters;
+  solutionCountRef.current = solutionCount;
 
   useEffect(() => {
     try {
@@ -410,22 +470,56 @@ export default function Home() {
       return undefined;
     };
 
-    const drawFrame = (requested: number) => {
-      const image = nearestLoadedFrame(requested);
-      if (!image) return;
-      context.drawImage(image, 0, 0, canvas.width, canvas.height);
+    const drawCover = (image: HTMLImageElement, opacity = 1) => {
+      const scale = Math.max(
+        canvas.width / image.naturalWidth,
+        canvas.height / image.naturalHeight,
+      );
+      const width = image.naturalWidth * scale;
+      const height = image.naturalHeight * scale;
+      const x = (canvas.width - width) / 2;
+      const y = (canvas.height - height) / 2;
+      context.globalAlpha = opacity;
+      context.drawImage(image, x, y, width, height);
+    };
+
+    const drawRender = (render: FrameRender) => {
+      const primary = nearestLoadedFrame(Math.round(render.primaryFrame));
+      if (!primary) return;
+
+      context.globalAlpha = 1;
+      drawCover(primary);
+
+      if (render.secondaryFrame !== undefined && render.blend > 0) {
+        const secondary = nearestLoadedFrame(Math.round(render.secondaryFrame));
+        if (secondary) drawCover(secondary, render.blend);
+      }
+
+      context.globalAlpha = 1;
     };
 
     const animate = () => {
-      const difference = targetFrameRef.current - currentFrameRef.current;
-      currentFrameRef.current += difference * 0.18;
-      drawFrame(Math.round(currentFrameRef.current));
+      const difference = targetTimelineRef.current - currentTimelineRef.current;
+      currentTimelineRef.current += difference * 0.16;
+      drawRender(
+        frameRenderForTimeline(
+          currentTimelineRef.current,
+          totalChaptersRef.current,
+          solutionCountRef.current,
+        ),
+      );
 
-      if (Math.abs(difference) > 0.04) {
+      if (Math.abs(difference) > 0.0005) {
         animationRef.current = window.requestAnimationFrame(animate);
       } else {
-        currentFrameRef.current = targetFrameRef.current;
-        drawFrame(Math.round(currentFrameRef.current));
+        currentTimelineRef.current = targetTimelineRef.current;
+        drawRender(
+          frameRenderForTimeline(
+            currentTimelineRef.current,
+            totalChaptersRef.current,
+            solutionCountRef.current,
+          ),
+        );
         animationRef.current = null;
       }
     };
@@ -436,6 +530,26 @@ export default function Home() {
       }
     };
 
+    const resizeCanvas = () => {
+      const pixelRatio = Math.min(window.devicePixelRatio || 1, 1.5);
+      const width = Math.max(1, Math.round(window.innerWidth * pixelRatio));
+      const height = Math.max(1, Math.round(window.innerHeight * pixelRatio));
+      if (canvas.width !== width || canvas.height !== height) {
+        canvas.width = width;
+        canvas.height = height;
+      }
+      drawRender(
+        frameRenderForTimeline(
+          currentTimelineRef.current,
+          totalChaptersRef.current,
+          solutionCountRef.current,
+        ),
+      );
+    };
+
+    resizeCanvas();
+    window.addEventListener("resize", resizeCanvas, { passive: true });
+
     for (let index = 0; index < FRAME_COUNT; index += 1) {
       const image = new Image();
       image.decoding = "async";
@@ -443,8 +557,18 @@ export default function Home() {
         if (cancelled) return;
         loaded += 1;
         setLoadedFrames(loaded);
-        if (index === 0 || index === Math.round(targetFrameRef.current)) {
-          drawFrame(Math.round(targetFrameRef.current));
+        const currentRender = frameRenderForTimeline(
+          currentTimelineRef.current,
+          totalChaptersRef.current,
+          solutionCountRef.current,
+        );
+        const isCurrentPrimary = index === Math.round(currentRender.primaryFrame);
+        const isCurrentSecondary = currentRender.secondaryFrame !== undefined &&
+          index === Math.round(currentRender.secondaryFrame);
+        if (index === 0 || isCurrentPrimary || isCurrentSecondary) {
+          drawRender(
+            currentRender,
+          );
         }
       };
       image.src = framePath(index);
@@ -453,6 +577,7 @@ export default function Home() {
 
     return () => {
       cancelled = true;
+      window.removeEventListener("resize", resizeCanvas);
       if (animationRef.current !== null) window.cancelAnimationFrame(animationRef.current);
     };
   }, []);
@@ -468,7 +593,7 @@ export default function Home() {
       const scaled = raw * totalChapters;
       const chapter = Math.min(totalChapters - 1, Math.floor(scaled));
       const localProgress = raw === 1 ? 1 : scaled - Math.floor(scaled);
-      targetFrameRef.current = frameForScene(chapter, localProgress, solutionCount);
+      targetTimelineRef.current = scaled;
       setScene({
         progress: Math.round(raw * 1000) / 1000,
         chapter,
@@ -568,7 +693,7 @@ export default function Home() {
         <section
           ref={storyRef}
           className="growthStory"
-          style={{ height: `${totalChapters * 108}vh` }}
+          style={{ height: `${100 + totalChapters * CHAPTER_SCROLL_VH}svh` }}
           aria-label="Scroll-driven solution story"
         >
           <div className="stickyStage">

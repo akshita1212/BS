@@ -198,7 +198,6 @@ textarea {
 
 .growthStory {
   position: relative;
-  height: 560vh;
   background: var(--wash);
 }
 
@@ -207,7 +206,8 @@ textarea {
   top: 0;
   width: 100%;
   height: 100vh;
-  min-height: 620px;
+  height: 100svh;
+  min-height: 0;
   overflow: hidden;
   isolation: isolate;
   background: #dce9d2;
@@ -1106,12 +1106,8 @@ textarea {
     font-size: 17px;
   }
 
-  .growthStory {
-    height: 520vh;
-  }
-
   .stickyStage {
-    min-height: 560px;
+    min-height: 0;
   }
 
   .posterFrame,

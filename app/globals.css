@@ -50,6 +50,12 @@ a {
   -webkit-tap-highlight-color: transparent;
 }
 
+button,
+input,
+textarea {
+  font: inherit;
+}
+
 .siteHeader {
   position: fixed;
   z-index: 50;
@@ -75,7 +81,8 @@ a {
 
 .brandLockup,
 .headerMeta,
-.bloomLink {
+.bloomLink,
+.addSolutionButton {
   pointer-events: auto;
 }
 
@@ -147,7 +154,8 @@ a {
   transition: transform 120ms linear;
 }
 
-.bloomLink {
+.bloomLink,
+.addSolutionButton {
   display: inline-flex;
   align-items: center;
   gap: 8px;
@@ -159,9 +167,33 @@ a {
   transition: background 220ms ease, transform 220ms ease;
 }
 
-.bloomLink:hover {
+.bloomLink:hover,
+.addSolutionButton:hover {
   background: rgba(255, 255, 255, 0.92);
   transform: translateY(-1px);
+}
+
+.addSolutionButton {
+  color: var(--paper);
+  background: var(--ink);
+  border-color: var(--ink);
+  cursor: pointer;
+  text-transform: uppercase;
+}
+
+.addSolutionButton:hover {
+  color: var(--paper);
+  background: var(--teal);
+  border-color: var(--teal);
+}
+
+.addSolutionButton:focus-visible,
+.chapterControls button:focus-visible,
+.solutionModal button:focus-visible,
+.solutionModal input:focus-visible,
+.solutionModal textarea:focus-visible {
+  outline: 2px solid var(--teal);
+  outline-offset: 3px;
 }
 
 .growthStory {
@@ -354,6 +386,26 @@ a {
   line-height: 1.55;
 }
 
+.cardLifecycle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 14px;
+  color: var(--ink-2);
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.cardLifecycle i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--teal);
+  box-shadow: 0 0 0 4px rgba(15, 158, 132, 0.12);
+}
+
 .solutionCard > a {
   display: inline-flex;
   align-items: center;
@@ -507,6 +559,273 @@ a {
 .finalOffering > a:hover {
   background: var(--teal);
   transform: translateY(-1px);
+}
+
+.chapterControls {
+  position: absolute;
+  z-index: 12;
+  top: 104px;
+  right: var(--page-pad);
+  display: grid;
+  grid-template-columns: 54px minmax(180px, 1fr) 62px;
+  align-items: stretch;
+  overflow: hidden;
+  color: var(--ink);
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  box-shadow: var(--shadow-card);
+  backdrop-filter: blur(18px) saturate(115%);
+}
+
+.chapterControls button {
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 3px;
+  min-height: 58px;
+  padding: 7px;
+  color: var(--ink);
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  transition: color 180ms ease, background 180ms ease;
+}
+
+.chapterControls button:first-child {
+  border-right: 1px solid var(--line);
+}
+
+.chapterControls button:last-child {
+  border-left: 1px solid var(--line);
+}
+
+.chapterControls button:hover:not(:disabled) {
+  color: var(--paper);
+  background: var(--teal);
+}
+
+.chapterControls button:disabled {
+  cursor: not-allowed;
+  opacity: 0.32;
+}
+
+.chapterControls kbd {
+  font-family: var(--font-inter), Inter, sans-serif;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.chapterControls button span {
+  font-size: 7px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.chapterControls > div {
+  display: grid;
+  align-content: center;
+  gap: 2px;
+  padding: 9px 13px;
+}
+
+.chapterControls small,
+.chapterControls > div > span {
+  color: var(--ink-2);
+  font-size: 7px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.chapterControls strong {
+  font-family: var(--font-archivo), Archivo, sans-serif;
+  font-size: 12px;
+  line-height: 1.15;
+}
+
+.modalBackdrop {
+  position: fixed;
+  z-index: 100;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(11, 15, 13, 0.48);
+  backdrop-filter: blur(12px);
+  animation: modalFade 220ms ease both;
+}
+
+.solutionModal {
+  position: relative;
+  width: min(560px, 100%);
+  max-height: calc(100vh - 48px);
+  overflow: auto;
+  padding: clamp(28px, 5vw, 48px);
+  background:
+    radial-gradient(70% 80% at 100% 100%, rgba(46, 214, 173, 0.24), transparent 68%),
+    radial-gradient(55% 70% at 0% 0%, rgba(183, 236, 102, 0.24), transparent 68%),
+    rgba(245, 250, 241, 0.98);
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  border-radius: 20px;
+  box-shadow: 0 24px 80px rgba(11, 15, 13, 0.24);
+  animation: modalRise 360ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.modalClose {
+  position: absolute;
+  top: 18px;
+  right: 18px;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  color: var(--ink);
+  background: rgba(255, 255, 255, 0.62);
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 20px;
+  line-height: 1;
+}
+
+.modalEyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--teal);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.modalEyebrow i {
+  width: 24px;
+  height: 2px;
+  background: var(--teal-bar);
+}
+
+.solutionModal h2 {
+  margin: 18px 44px 8px 0;
+  font-family: var(--font-archivo), Archivo, sans-serif;
+  font-size: clamp(30px, 5vw, 46px);
+  line-height: 0.98;
+  letter-spacing: -0.035em;
+}
+
+.solutionModal > p {
+  margin: 0 0 26px;
+  color: var(--ink-2);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.solutionModal form {
+  display: grid;
+  gap: 10px;
+}
+
+.solutionModal label {
+  margin-top: 7px;
+  color: var(--ink);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.solutionModal input,
+.solutionModal textarea {
+  width: 100%;
+  color: var(--ink);
+  background: rgba(255, 255, 255, 0.78);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  outline: none;
+  transition: border-color 180ms ease, background 180ms ease;
+}
+
+.solutionModal input {
+  height: 48px;
+  padding: 0 14px;
+}
+
+.solutionModal textarea {
+  min-height: 128px;
+  padding: 13px 14px;
+  resize: vertical;
+  line-height: 1.55;
+}
+
+.solutionModal input:focus,
+.solutionModal textarea:focus {
+  background: var(--paper);
+  border-color: var(--teal);
+}
+
+.solutionModal input::placeholder,
+.solutionModal textarea::placeholder {
+  color: rgba(66, 81, 74, 0.62);
+}
+
+.formFooter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 10px;
+}
+
+.formFooter > span {
+  color: var(--ink-2);
+  font-size: 9px;
+  font-variant-numeric: tabular-nums;
+}
+
+.formFooter > div {
+  display: flex;
+  gap: 8px;
+}
+
+.cancelButton,
+.submitButton {
+  min-height: 42px;
+  padding: 0 16px;
+  border-radius: 9px;
+  cursor: pointer;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.cancelButton {
+  color: var(--ink);
+  background: transparent;
+  border: 1px solid var(--line);
+}
+
+.submitButton {
+  color: var(--paper);
+  background: var(--ink);
+  border: 1px solid var(--ink);
+}
+
+.submitButton:hover {
+  background: var(--teal);
+  border-color: var(--teal);
+}
+
+@keyframes modalFade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes modalRise {
+  from { opacity: 0; transform: translateY(18px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
 }
 
 .scrollCue {
@@ -766,9 +1085,25 @@ a {
     display: none;
   }
 
+  .headerMeta {
+    gap: 8px;
+  }
+
   .bloomLink {
-    padding: 9px 11px;
-    font-size: 9px;
+    display: none;
+  }
+
+  .addSolutionButton {
+    display: grid;
+    place-items: center;
+    width: 38px;
+    height: 38px;
+    padding: 0;
+    font-size: 0;
+  }
+
+  .addSolutionButton span {
+    font-size: 17px;
   }
 
   .growthStory {
@@ -835,6 +1170,17 @@ a {
     -webkit-line-clamp: 2;
   }
 
+  .chapterControls {
+    top: 80px;
+    right: var(--page-pad);
+    left: var(--page-pad);
+    grid-template-columns: 48px 1fr 54px;
+  }
+
+  .chapterControls > div > span {
+    display: none;
+  }
+
   .finalOffering {
     bottom: 3vh;
     grid-template-columns: 1fr;
@@ -892,6 +1238,27 @@ a {
 
   .staticExperience .finalOffering {
     grid-template-columns: 1fr;
+  }
+
+  .modalBackdrop {
+    align-items: end;
+    padding: 0;
+  }
+
+  .solutionModal {
+    width: 100%;
+    max-height: 92vh;
+    padding: 30px 20px 24px;
+    border-radius: 20px 20px 0 0;
+  }
+
+  .formFooter {
+    align-items: flex-end;
+  }
+
+  .formFooter > div {
+    flex-wrap: wrap;
+    justify-content: flex-end;
   }
 }
 
